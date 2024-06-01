@@ -1,0 +1,249 @@
+import pygame
+from pygame.math import Vector2
+import random
+import math
+
+# Define constants
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+BACKGROUND_COLOR = (0, 0, 0)
+
+# Particle parameters
+num_particles = 10
+particle_radius = 10
+particle_speed = 2
+smoothingRadius = 150
+dt=0.1
+restitution = .5
+positions = []  # Vector
+densities = []  # Scalar
+velocities = [] # Vector
+pressures = []  # Scalar
+targetDensity = 1
+pressureMultiplier = .001
+particle_color = (255,255,255)
+
+
+# Initialize Pygame
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption('Fluid Simulator')
+
+
+# Create particles
+#particles = []  # Classes
+for i in range(num_particles):
+    x = random.randint(0, SCREEN_WIDTH)
+    y = random.randint(0, SCREEN_HEIGHT)
+    positions.append(Vector2(x,y))
+    velocities.append(Vector2(0,0))
+    densities.append(1)
+
+
+def DistanceCalculation(referencePosition, otherPosition):  #Takes two positions and compares them
+    return (otherPosition-referencePosition).magnitude()
+
+# Kernel to determine density
+# Returns values 0 to 1
+def SmoothingKernel(dst):   #Takes distance argument
+    if dst >= smoothingRadius:
+        return 0
+    return ((1 - (dst/smoothingRadius)**2) ** 3)
+
+# Derivitive of kernel to calculate particle influence on velocity
+# Returns value 0 to 1
+def KernelDerivitive(dst):  #Takes distance argument
+    if dst >= smoothingRadius:
+        return 0
+    return -6 * dst * ((1 - (dst/smoothingRadius)**2) ** 2) / smoothingRadius
+
+# Uses distance to calculate smoothing kernel value
+# Returns value 0 to 1
+def CalculateDensity(referencePosition):    #Takes position argument
+    influence = 0.001
+    for position in positions:
+        if position!=referencePosition:
+            dst = DistanceCalculation(position, referencePosition) 
+            influence += SmoothingKernel(dst)            
+    return influence #Scalar
+            #return 0.001
+
+# Stores densities in array
+def UpdateDensities(position):  #Updates
+        i = positions.index(position)
+        densities[i] = CalculateDensity(position)
+
+# Converts 
+def DensitytoPressure(density): #Takes density argument
+    error = density - targetDensity
+    pressure = error * pressureMultiplier
+    return pressure
+
+# Calculates pressure using kernelgradient and distance argument. 
+# Returns vector
+def CalculatePressureInfluence(referencePosition):   #Takes positons argument
+    k=0
+    density1 = densities[positions.index(referencePosition)]
+    for position in positions:
+        if position!=referencePosition:
+            density2 = densities[positions.index(position)]
+            dst = DistanceCalculation(position, referencePosition)  #magnitude
+            direction = (position-referencePosition)/dst            #unit vector
+            k += KernelDerivitive(dst)
+    return DensitytoPressure(density2)*k*direction/density2/density1#*DensitytoPressure(density[k])#also densitytopressure
+            
+#shut up
+'''
+def apply_viscosity(referencePosition):
+    viscosity_coefficient = 1
+    for position in positions:
+        if position != referencePosition:
+            dst = DistanceCalculation(position, referencePosition)
+            if dst.magnitude() < smoothingRadius:
+                kernel_value = SmoothingKernel(smoothingRadius, dst)
+                viscosity_force = viscosity_coefficient * kernel_value * (velocity - reference.velocity)
+                particle.velocity += viscosity_force * dt
+'''
+
+def UpdateVelocities(position,i):
+    if (velocities[i]+(-CalculatePressureInfluence(position)*dt)).magnitude()>10:
+        velocities[i] = velocities[i]
+    else:
+        velocities[i] += -CalculatePressureInfluence(position)*dt
+        # DensitytoPressure --> particle.velocity*=(1.0 - 0.1 * dt)
+        # GRAVITY -- >particle.velocity+=Vector2(0,9.8)*dt
+
+def UpdatePositions(position,i):
+    position+=velocities[i]*dt
+
+def handle_wall_collisions(position):
+    if position[0] < particle_radius: #Left Wall
+        position[0] = particle_radius
+        velocities[i][0] = abs(velocities[i][0])
+    if position[0] > SCREEN_WIDTH - particle_radius: #Right wall
+        position[0] = SCREEN_WIDTH - particle_radius
+        velocities[i][0] = -abs(velocities[i][0])
+    if position[1] < particle_radius: #Ceiling
+        position[1] = particle_radius
+        velocities[i][1] = abs(velocities[i][1]) 
+    if position[1] > SCREEN_HEIGHT - particle_radius: #Floor
+        position[1] = SCREEN_HEIGHT - particle_radius
+        velocities[i][1] = -abs(velocities[i][1])
+
+'''
+def handle_particle_collisions(particles):
+    for i in range(len(particles)):
+        for j in range(i + 1, len(particles)):
+            distance = particles[j].position - particles[i].position
+            distance_magnitude = distance.magnitude()
+            # Check for collision (adjust the collision threshold as needed)
+            if distance_magnitude < 2 * particle_radius:
+                # Normalize the direction vector
+                direction = distance / distance_magnitude
+                # Calculate relative velocity
+                relative_velocity = particles[j].velocity - particles[i].velocity
+                # Calculate the relative velocity along the direction of collision
+                relative_speed = relative_velocity.dot(direction)
+                # Apply impulse to avoid overlap
+                impulse = 0.5 * (1 + restitution) * relative_speed * direction
+                # Update velocities of colliding particles
+                particles[i].velocity += impulse
+                particles[j].velocity -= impulse
+                # Separate particles to avoid overlap
+                separation = direction * (2 * particle_radius - distance_magnitude) / 2
+                particles[i].position -= separation
+                particles[j].position += separation
+'''
+'''
+particles = []
+num_particles_per_side = int(num_particles ** 0.5)
+spacing_scale = 0.1
+min_dimension = min(SCREEN_WIDTH, SCREEN_HEIGHT)
+grid_size = min_dimension * spacing_scale
+x_offset = (SCREEN_WIDTH - grid_size) / 2
+y_offset = (SCREEN_HEIGHT - grid_size) / 2
+
+for i in range(num_particles_per_side):
+    for j in range(num_particles_per_side):
+        x = x_offset + (i + 0.5) * (grid_size / num_particles_per_side)
+        y = y_offset + (j + 0.5) * (grid_size / num_particles_per_side)
+        particles.append(Particle(x, y))
+''''''
+for particle in particles:
+        CalculateDensity(particle)
+        CalculatePressure(particle)
+        particle.velocity+=particle.pressure*dt
+        particle.move()
+'''
+
+
+
+# Main loop
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Clear the screen
+    screen.fill(BACKGROUND_COLOR)
+    
+    # Update particle positions
+    for position in positions:
+        pygame.draw.circle(screen, particle_color, position, particle_radius)
+        #pygame.draw.arc(screen, (255,0,0), (position[0]-smoothingRadius, position[1]-smoothingRadius, smoothingRadius*2,smoothingRadius*2), 0, 2*math.pi, 1)
+        UpdateDensities(position)# Updates density for every particle by comparing distance of every other particle
+    for position in positions:    
+        i = positions.index(position)
+        #calculates pressure using slope of kernel
+        UpdateVelocities(position, i)
+    for position in positions:
+        i = positions.index(position)
+        handle_wall_collisions(position)
+    #handle_particle_collisions(particles)
+        
+        #apply_viscosity(particle)
+        UpdatePositions(position, i)
+        #particle.velocity*=(1.0 - 0.1 * dt)
+        
+    pygame.display.flip()
+
+# Quit Pygame
+pygame.quit()
+
+
+
+
+##################
+'''particles = []
+num_particles_per_side = int(num_particles ** 0.5)
+spacing_scale = 0.8
+min_dimension = min(SCREEN_WIDTH, SCREEN_HEIGHT)
+grid_size = min_dimension * spacing_scale
+x_offset = (SCREEN_WIDTH - grid_size) / 2
+y_offset = (SCREEN_HEIGHT - grid_size) / 2
+
+for i in range(num_particles_per_side):
+    for j in range(num_particles_per_side):
+        x = x_offset + (i + 0.5) * (grid_size / num_particles_per_side)
+        y = y_offset + (j + 0.5) * (grid_size / num_particles_per_side)
+        particles.append(Particle(x, y))'''
+###################
+#particles.append(Particle(402.5,300))
+
+
+#for i in positions:
+ #   if i.x>375 and i.x<425 and i.y>275 and i.y<325:
+        #print(i)
+
+#print(positions[0])
+#print(DistanceCalculation(positions[0],(400,300)))
+#print(DistanceCalculation(Vector2(410,300),Vector2(400,300)))
+#print(SmoothingKernel(smoothingRadius, Vector2(1,0)))
+#print(CalculateDensity(400,300))
+
+'''for u in range(smoothingRadius):
+            surface = pygame.Surface((self.x,self.y))
+            surface.set_colorkey((0,0,0))
+            surface.set_alpha(255*SmoothingKernel(smoothingRadius,smoothingRadius-Vector2(u,0)))
+            pygame.draw.circle(surface,(0,0,255),self.position,smoothingRadius-u)'''
