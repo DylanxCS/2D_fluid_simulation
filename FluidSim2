@@ -1,0 +1,51 @@
+# Dylan Swanson
+# FluidSim PT.2
+# Starting June 2, 2024
+
+import pygame
+import numpy as np
+pygame.init()
+
+# Set up the window
+N = 512
+screen = pygame.display.set_mode((N,N))
+pygame.display.set_caption("Fluid Simulator")
+running = True
+while running:
+    # Handle events
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    pygame.display.flip()
+pygame.quit()
+
+# Initialize variables
+dt = 0.1
+diffusion = 0.01
+viscosity = 0.01
+
+#class box:
+
+
+X = np.zeros((N,N), dtype=float)
+Y = np.zeros((N,N), dtype=float)
+X0 = np.zeros((N,N), dtype=float)
+Y0 = np.zeros((N,N), dtype=float)
+density = np.zeros((N,N), dtype=float)
+density0 = np.zeros((N,N), dtype=float)
+
+def add_density(x, y, amount):
+    density[x,y] += amount
+
+def add_velocity(x, y, amount_x, amount_y):
+    X[x,y] += amount_x
+    Y[x,y] += amount_y
+
+def wall_collision(b, )
+
+def adjacency()
+
+def diffuse(b, x, x0, diff, dt):
+    x=4
+
+
