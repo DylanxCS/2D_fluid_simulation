@@ -1,6 +1,7 @@
 # Dylan Swanson
 # FluidSim PT.2
 # Starting June 2, 2024
+# Reference: https://mikeash.com/pyblog/fluid-simulation-for-dummies.html
 
 import pygame
 import numpy as np
@@ -24,13 +25,15 @@ dt = 0.1
 diffusion = 0.01
 viscosity = 0.01
 
-#class box:
-
-
+# Initialize arrays
 X = np.zeros((N,N), dtype=float)
 Y = np.zeros((N,N), dtype=float)
 X0 = np.zeros((N,N), dtype=float)
 Y0 = np.zeros((N,N), dtype=float)
+Vx = np.zeros((N,N), dtype=float)
+Vy = np.zeros((N,N), dtype=float)
+Vx0 = np.zeros((N,N), dtype=float)
+Vy0 = np.zeros((N,N), dtype=float)
 density = np.zeros((N,N), dtype=float)
 density0 = np.zeros((N,N), dtype=float)
 
@@ -41,7 +44,29 @@ def add_velocity(x, y, amount_x, amount_y):
     X[x,y] += amount_x
     Y[x,y] += amount_y
 
-def wall_collision(b, )
+# t for type of wall: side, top
+# array can take X, Y, Vx, Vy, density
+def walls(t, array, N):
+    for i in array:
+        for j in i:
+            if (t == "top"):
+                array(0,j) == -array(1,j)
+                array(N-1,j) == -array(N-2,j)
+            else:
+                array(0,j) == array(1,j)
+                array(N-1,j) == array(N-2,j)
+    for i in array:
+        for j in i:
+            if (t == "side"):
+                array(i,0) == -array(1,j)
+                array(i,N-1) == -array(N-2,j)
+            else:
+                array(0,j) == array(1,j)
+                array(N-1,j) == array(N-2,j)
+    # Corners
+    
+        
+    
 
 def adjacency()
 
