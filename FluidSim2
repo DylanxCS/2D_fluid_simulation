@@ -8,8 +8,32 @@ import numpy as np
 import math
 pygame.init()
 
-# Set up the window
+
+
+# Initialize variables
+dt = 0.1
+diffusion = 0.01
+viscosity = 0.01
+
+# Initialize arrays
 N = 512
+X = np.zeros((N,N), dtype=float)
+Y = np.zeros((N,N), dtype=float)
+X0 = np.zeros((N,N), dtype=float)
+Y0 = np.zeros((N,N), dtype=float)
+Vx = np.zeros((N,N), dtype=float)
+Vy = np.zeros((N,N), dtype=float)
+Vx0 = np.zeros((N,N), dtype=float)
+Vy0 = np.zeros((N,N), dtype=float)
+density = np.zeros((N,N), dtype=float)
+density0 = np.zeros((N,N), dtype=float)
+s = np.zeros((N,N), dtype=float)
+diff = np.zeros((N,N), dtype=float)
+
+
+
+# Set up the window
+
 screen = pygame.display.set_mode((N,N))
 pygame.display.set_caption("Fluid Simulator")
 running = True
@@ -21,32 +45,16 @@ while running:
     pygame.display.flip()
 pygame.quit()
 
-# Initialize variables
-dt = 0.1
-diffusion = 0.01
-viscosity = 0.01
 
-# Initialize arrays
-X = np.zeros((N,N), dtype=float)
-Y = np.zeros((N,N), dtype=float)
-X0 = np.zeros((N,N), dtype=float)
-Y0 = np.zeros((N,N), dtype=float)
-Vx = np.zeros((N,N), dtype=float)
-Vy = np.zeros((N,N), dtype=float)
-Vx0 = np.zeros((N,N), dtype=float)
-Vy0 = np.zeros((N,N), dtype=float)
-density = np.zeros((N,N), dtype=float)
-density0 = np.zeros((N,N), dtype=float)
 
-def add_density(x, y, amount):
+def Add_Density(x, y, amount):
     density[x,y] += amount
 
-def add_velocity(x, y, amount_x, amount_y):
+def Add_Velocity(x, y, amount_x, amount_y):
     X[x,y] += amount_x
     Y[x,y] += amount_y
 
-# 1 = sides, 2 = tops, 0 = corners
-def walls(array, t, N):#3 = checks z's, 2 = y's, 1 = x's
+def Walls(array, t, N): # 1 = sides, 2 = tops, 0 = corners
     if (t == "top"):
         array[0] = -array[1]
         array[N-1] = -array[N-2]
@@ -59,7 +67,7 @@ def walls(array, t, N):#3 = checks z's, 2 = y's, 1 = x's
     array[N-1,0] = 0.5*(array[N-2,0]+array[N-1,1])
     array[N-1,N-1] = 0.5*(array[N-1,N-2]+array[N-2,N-1])
         
-def solver(array, array0, a, c, iter, t, N):
+def Solver(array, array0, a, c, iter, t, N):
     for k in range(iter):
         for i in range(1,N-1):#may be out of bounds - we want the box inside the edges
             for j in range(1,N-1):
@@ -67,31 +75,31 @@ def solver(array, array0, a, c, iter, t, N):
                                 a*(array[i+1,j] + array[i-1,j]
                                 + array[i,j+1] + array[i,j-1])
                                 ) * (1/c)
-        walls(array,t,N)
+        Walls(array,t,N)
 
-def diffuse(array, array0, diff, dt, iter, t, N): #check necessity of these. maybe they can be stored as global variables
+def Diffuse(array, array0, diff, dt, iter, t, N): #check necessity of these. maybe they can be stored as global variables
     a = dt * diff * (N-2)**2
-    solver(array, array0, a, 1+6*a, iter, N)
+    Solver(array, array0, a, 1+6*a, iter, t, N)
 
-def project(Vx, Vy, p, div, iter, N):
+def Project(Vx, Vy, p, div, iter, N):
     for i in range(1,N-1):
         for j in range(1,N-1):
             div[i,j] = -0.5 * (Vx[i+1,j] - Vx[i-1,j]
                                 + Vy[i,j+1] - Vy[i,j-1])/N
             p[i,j] = 0
-    walls(0,div,N)
-    walls(0,p,N)
-    solver(p,div,1,6,iter,0,N)
+    Walls(div,"",N)
+    Walls(p,"",N)
+    Solver(p,div,1,6,iter,0,N)
     
     for i in range(1,N-1):
         for j in range(1,N-1):
             Vx -= (0.5 * (p[i+1,j] - p[i-1,j]) * N)
             Vy -= (0.5 * (p[i,j+1] - p[i,j-1]) * N)
-    walls("side",Vx,N)
-    walls("top",Vy,N)
+    Walls(Vx,"side",N)
+    Walls(Vy,"top",N)
 
-def advect(t, array, array0, Vx, Vy, dt, N):
-    dtx, dty, dtz = dt * (N-2)
+def Advect(t, array, array0, Vx, Vy, dt, N):
+    dtx = dty = dtz = dt * (N-2)
     Nfloat = N
     for i,ifloat in zip(range(1,N-1),range(1,N-1)):
         for j,jfloat in zip(range(1,N-1),range(1,N-1)):
@@ -124,4 +132,18 @@ def advect(t, array, array0, Vx, Vy, dt, N):
                     + t1 * array[i0i, j1i]))
                 + s1 * (t0 * array0[i1i,j0i] 
                     + t1 * array0[i1i,j1i]))
-    walls(t,array,N)
+    Walls(array,t,N)
+
+
+
+def Step():
+    Diffuse(Vx0, Vx, viscosity, dt, 4, "side", N)
+    Diffuse(Vy0, Vy, viscosity, dt, 4, "top", N)
+    Project(Vx0, Vy0, Vx, Vy, 4, N)
+    Advect("side", Vx, Vx0, Vx0, Vy0, dt, N)
+    Advect("top", Vy, Vy0, Vx0, Vy0, dt, N)
+    Project(Vx, Vy, Vx, Vx0, 4, N)
+    Diffuse(s, density, diffusion, dt, 4, 0, N)
+    Advect(density, s, Vx, Vy, 0, dt, N)
+
+Step()
