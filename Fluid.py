@@ -1,22 +1,15 @@
-# Dylan Swanson
-# FluidSim PT.2
-# Starting June 2, 2024
-# Reference: https://mikeash.com/pyblog/fluid-simulation-for-dummies.html
-
-import pygame
 import numpy as np
 import math
-pygame.init()
-
+import pygame
 
 
 # Initialize variables
 dt = 0.1
 diffusion = 0.01
 viscosity = 0.01
-
 # Initialize arrays
-N = 512
+N = 64
+SCALE = 8
 X = np.zeros((N,N), dtype=float)
 Y = np.zeros((N,N), dtype=float)
 X0 = np.zeros((N,N), dtype=float)
@@ -31,28 +24,27 @@ s = np.zeros((N,N), dtype=float)
 diff = np.zeros((N,N), dtype=float)
 
 
-
-# Set up the window
-
-screen = pygame.display.set_mode((N,N))
-pygame.display.set_caption("Fluid Simulator")
-running = True
-while running:
-    # Handle events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-    pygame.display.flip()
-pygame.quit()
-
-
-
 def Add_Density(x, y, amount):
+    x = min(max(x,0),N-1)
+    y = min(max(y,0),N-1)
+    print("Mouse Position:", x, y)
     density[x,y] += amount
+
 
 def Add_Velocity(x, y, amount_x, amount_y):
     X[x,y] += amount_x
     Y[x,y] += amount_y
+
+def Render(screen):
+    for i in range(N):
+        for j in range(N):
+            x = i * (SCALE)
+            y = j * (SCALE)
+            d = density[i,j]
+            D = min(d, 255)
+            rectangle = pygame.Rect(x, y, SCALE, SCALE)
+            pygame.draw.rect(screen, (D,D,D), rectangle)
+
 
 def Walls(array, t, N): # 1 = sides, 2 = tops, 0 = corners
     if (t == "top"):
@@ -66,7 +58,8 @@ def Walls(array, t, N): # 1 = sides, 2 = tops, 0 = corners
     array[0,N-1] = 0.5*(array[1,N-1]+array[0,N-2])
     array[N-1,0] = 0.5*(array[N-2,0]+array[N-1,1])
     array[N-1,N-1] = 0.5*(array[N-1,N-2]+array[N-2,N-1])
-        
+
+
 def Solver(array, array0, a, c, iter, t, N):
     for k in range(iter):
         for i in range(1,N-1):#may be out of bounds - we want the box inside the edges
@@ -77,9 +70,11 @@ def Solver(array, array0, a, c, iter, t, N):
                                 ) * (1/c)
         Walls(array,t,N)
 
+
 def Diffuse(array, array0, diff, dt, iter, t, N): #check necessity of these. maybe they can be stored as global variables
     a = dt * diff * (N-2)**2
     Solver(array, array0, a, 1+6*a, iter, t, N)
+
 
 def Project(Vx, Vy, p, div, iter, N):
     for i in range(1,N-1):
@@ -90,13 +85,13 @@ def Project(Vx, Vy, p, div, iter, N):
     Walls(div,"",N)
     Walls(p,"",N)
     Solver(p,div,1,6,iter,0,N)
-    
     for i in range(1,N-1):
         for j in range(1,N-1):
             Vx -= (0.5 * (p[i+1,j] - p[i-1,j]) * N)
             Vy -= (0.5 * (p[i,j+1] - p[i,j-1]) * N)
     Walls(Vx,"side",N)
     Walls(Vy,"top",N)
+
 
 def Advect(t, array, array0, Vx, Vy, dt, N):
     dtx = dty = dtz = dt * (N-2)
@@ -135,7 +130,6 @@ def Advect(t, array, array0, Vx, Vy, dt, N):
     Walls(array,t,N)
 
 
-
 def Step():
     Diffuse(Vx0, Vx, viscosity, dt, 4, "side", N)
     Diffuse(Vy0, Vy, viscosity, dt, 4, "top", N)
@@ -144,6 +138,4 @@ def Step():
     Advect("top", Vy, Vy0, Vx0, Vy0, dt, N)
     Project(Vx, Vy, Vx, Vx0, 4, N)
     Diffuse(s, density, diffusion, dt, 4, 0, N)
-    Advect(density, s, Vx, Vy, 0, dt, N)
-
-Step()
+    Advect(0, density, s, Vx, Vy, dt, N)
