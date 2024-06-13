@@ -23,14 +23,17 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.MOUSEMOTION:
-            pmouse_x, pmouse_y = mouse_x, mouse_y
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            delta_x = mouse_x - pmouse_x
-            delta_y = mouse_y - pmouse_y
-            Add_Density(int(mouse_x/SCALE), int(mouse_y/SCALE), 10*SCALE)
-            Add_Velocity(int(mouse_x/SCALE), int(mouse_y/SCALE), delta_x, delta_y)
-   
+        #elif event.type == pygame.MOUSEBUTTONDOWN:
+    
+        Add_Density(int(mouse_x/SCALE), int(mouse_y/SCALE), 10*SCALE)
+        amountX = mouse_x - pmouse_x
+        amountY = mouse_y - pmouse_y
+        pmouse_x, pmouse_y = pygame.mouse.get_pos()
+        #print(amountY, amountY, Vx[int(mouse_x/SCALE)][int(mouse_y/SCALE)], Vy[int(mouse_x/SCALE)][int(mouse_y/SCALE)],density[int(mouse_x/SCALE), int(mouse_y/SCALE)])
+
+        Add_Velocity(int(mouse_x/SCALE), int(mouse_y/SCALE), amountX/SCALE, amountY/SCALE)
+
+    #Add_Density(14,14,100)
     Step()
     Render(screen)
 

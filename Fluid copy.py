@@ -111,8 +111,8 @@ def Advect(t, array, array0, Vx, Vy, dt, N):
             x = i - tmp1 #maybe x is global variable
             y = j - tmp2
 
-            x = max(0, min(x, N - 1.5))
-            y = max(0, min(y, N - 1.5))
+            x = max(0.5, min(x, N + 0.5))
+            y = max(0.5, min(y, N + 0.5))
 
             i0 = int(math.floor(x))
             i1 = i0 + 1
